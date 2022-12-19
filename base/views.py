@@ -1,14 +1,16 @@
-from django.shortcuts import render
-# from django.http import JsonResponse
+from django.shortcuts import render,redirect
+from django.http import JsonResponse
 # from django.http import HttpResponse
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view,permission_classes
 from rest_framework.response import Response
 
-from .models import Advocate
-from .serializers import AdvocateSerializer
+from .models import Advocate,Company
+from .serializers import AdvocateSerializer,CompanySerializer
 
 from django.db.models import Q
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 
 # Create your views here.
 
@@ -26,6 +28,7 @@ def endpoints(request):
     return Response(data)#Only input can be dictionaries not objects
 
 @api_view(['GET','POST'])    
+# @permission_classes([IsAuthenticated])
 def advocate_list(request):
     # data=['Mohit','Madhav','Aradhaya']
     # advocates=Advocate.objects.all()
@@ -52,9 +55,59 @@ def advocate_list(request):
     
 
 
-@api_view(['GET'])    
-def advocate_detail(request,username):
-    # data=username
-    advocate=Advocate.objects.get(username=username)
-    serializer=AdvocateSerializer(advocate,many=False)#many is going to be false in this case because we just want to output a single object
-    return Response(serializer.data)    
+# @api_view(['GET','PUT','DELETE'])    #PUT is for updating
+# def advocate_detail(request,username):
+#     advocate=Advocate.objects.get(username=username)
+#     if request.method=='GET':
+#         # data=username
+       
+#         serializer=AdvocateSerializer(advocate,many=False)#many is going to be false in this case because we just want to output a single object
+#         return Response(serializer.data)  
+
+#     if  request.method=='PUT':
+#         advocate.username=request.data['username']
+#         advocate.bio=request.data['bio']
+#         advocate.save()
+#         serializer=AdvocateSerializer(advocate,many=False)#many is going to be false in this case because we just want to output a single object
+#         return Response(serializer.data) 
+
+#     if request.method=='DELETE':
+#         advocate.delete()    
+#         return Response('advocates')
+
+
+#Going to use class base view
+
+class AdvocteDetail(APIView):
+
+    def get_object(self,username):
+        try:
+            return Advocate.objects.get(username=username)
+        except:
+            raise JsonResponse("Advocate does not exist") 
+
+
+    def get(self,request,username):
+        advocate=self.get_object(username=username)
+        serializer=AdvocateSerializer(advocate,many=False)
+        return Response(serializer.data)
+
+    def put(self,request,username):
+        advocate=self.get_object(username=username)
+        advocate.username=request.data['username']
+        advocate.bio=request.data['bio']
+        serializer=AdvocateSerializer(advocate,many=False)
+        return Response(serializer.data)
+
+    def delete(self,request,username):
+        advocate=self.get_object(username=username)
+        advocate.delete()    
+        return Response('User Deleted')
+
+@api_view(['GET'])
+def company_list(request):
+    companies=Company.objects.all()
+    serializer=CompanySerializer(companies,many=True)#many is going to be false in this case because we just want to output a single object      
+    return Response(serializer.data)  
+
+
